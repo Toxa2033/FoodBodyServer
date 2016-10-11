@@ -1,0 +1,153 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('foodbodyserver:server');
+var http = require('http');
+var config = require('../config/index');
+const PC = require('../bin/mongoose').model('Pc');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || config.get('port'));
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */var io = require('socket.io')(server);
+var pc_online=[];
+io.on('connection', function(client){
+  /*client.on('new task', function(data,callback){
+    client.broadcast.emit(data,'update task mazafaka');
+    console.log('new task');
+    callback('222');
+  });*/
+
+  client.on('con', function(data,callback){
+    var tt={io_id:client.id,pc_id:data};
+    if(pc_online.indexOf(tt)==-1)pc_online.push(tt);
+    PC.findByIdAndUpdate(data,{online:true},{new:true,upsert:true},function(err,model){
+      if(model.online==true){
+        console.log('connect');
+        console.log(pc_online);
+      }
+    });
+    callback();
+  });
+
+  /*client.on('task_exec', function(data, callback){
+    console.log('task_exec');
+    console.log(data);
+    io.sockets.emit(data.user,data);
+  //  callback();
+  });*/
+
+  client.on('disconnect', function(){
+    var pc_id=removeItemFromPc(client.id);
+    PC.findByIdAndUpdate(pc_id,{online:false},{new:true,upsert:true},function(err,model){
+      if(model.online==false){
+        console.log('disconnect');
+        console.log(client.id);
+        console.log({dis:pc_online})
+      }
+    });
+  });
+});
+
+
+
+server.listen(port);
+
+server.on('error', onError);
+server.on('listening', onListening);
+
+
+function removeItemFromPc(item){
+  var index=pc_online.length-1;
+  while(index >= 0){
+    if(pc_online[index].io_id == item) {
+      var pc_id=pc_online[index].pc_id;
+      pc_online.splice(index, 1);
+      return pc_id;
+    }
+    index --;
+  }
+}
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+module.exports.socket = io;
+module.exports.isPcOnline=function(pcId){
+  pc_online.forEach(function(item){
+    if(item.pc_id==pcId)return true
+  });
+  return false;
+};

@@ -1,0 +1,32 @@
+{
+  "name": "remotetaskmanager",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www"
+  },
+  "dependencies": {
+    "adminize": "^0.8.1",
+    "allcountjs-cli": "^1.0.4",
+    "async": "~2.0.1",
+    "azure-storage": "^1.3.0",
+    "body-parser": "~1.15.1",
+    "connect-mongo": "^1.3.2",
+    "cookie-parser": "~1.4.3",
+    "dateformat": "^1.0.12",
+    "debug": "~2.2.0",
+    "express": "~4.13.4",
+    "express-jwt": "^3.4.0",
+    "express-session": "^1.14.1",
+    "express-unless": "^0.3.0",
+    "jade": "~1.11.0",
+    "jsonwebtoken": "^7.1.9",
+    "mongoose": "^4.5.10",
+    "mongoose-relationship": "^0.1.5",
+    "morgan": "^1.7.0",
+    "multer": "^1.2.0",
+    "nconf": "^0.8.4",
+    "ng-admin": "^1.0.0-alpha2",
+    "serve-favicon": "~2.3.0"
+  }
+}
