@@ -5,7 +5,7 @@ var async = require('async');
 const ToDoSchema = new Schema({
     __v: {type: Number, select: false},
     owner:{type:Schema.Types.ObjectId, ref:'User'},
-    type:{type:Number}, //0-rill, 1-open, 2-cmd, 3-path
+    type:{type:Number}, //0-kill, 1-open, 2-cmd, 3-path
     request:{type:Schema.Types.ObjectId, ref:'Request'},
     pc:{type:Schema.Types.ObjectId, ref:'Pc'},
     date:{type:Date,  default: Date.now},

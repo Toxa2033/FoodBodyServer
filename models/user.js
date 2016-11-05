@@ -31,6 +31,7 @@ UserSchema.statics.register = function (userData,pc, callback) {
     var query = {login: userData.login};
     User.find(query, function (err, model) {
         if (err)callback(err);
+        console.log(model);
         if (model.length != 0) {
             var error = new Error('Login is used');
             error.status = 403;

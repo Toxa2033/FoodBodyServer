@@ -7,6 +7,9 @@ var options = {
         if (req.query && req.query.token){
             return req.query.token;
         }
+        if(req.body && req.body.token){
+            return req.body.token;
+        }
         return null;
     }
 };

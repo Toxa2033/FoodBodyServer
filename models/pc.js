@@ -8,7 +8,7 @@ const PcSchema = new Schema({
     pcName: {type:String, trim:true, required: true},
     startedProcess: {type: Array, default: []},
     machineId:{type:String,required: true},
-    owner:{type:String, ref:"User"},
+    owner:{type:[{type:Schema.ObjectId, ref:"User", unique: true}],default:[]},
     installSoftware:{type:Array, default:[]},
     online:{type:Boolean}
 });

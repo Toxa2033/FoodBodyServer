@@ -2,9 +2,7 @@ const router = require('express').Router();
 const User = require('../bin/mongoose').model('User');
 const async = require('async');
 const Post = require('../bin/mongoose').model('Post');
-var searchQueryUtil = require('../utils/searchQueryUtil')('user');
 
-router.use(searchQueryUtil);
 
 /* GET users listing. */
 

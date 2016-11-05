@@ -1,7 +1,12 @@
-//var jwt = require('../bin/ejwt');
+var jwt = require('../bin/ejwt');
 
 module.exports = function (app) {
- //   app.use(jwt.unless({path: [/\/authorization/i,'/']}));
+        app.use(jwt.unless({
+            path: [
+                '/authorization',
+                '/authorization/register'
+            ]
+        }));
     app.use('/', require('./index'));
     app.use('/authorization', require('./authorization'));
     app.use('/pc', require('./pc'));

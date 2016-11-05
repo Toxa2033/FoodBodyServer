@@ -5,10 +5,12 @@ const Task = require('../bin/mongoose').model('task');
 const www = require('../bin/www');
 const timer=require('../bin/timer');
 const Request=require('../bin/mongoose').model('Request');
-/* GET users listing. */
+const pcUtils=require('../utils/pcUtils');
 
 router.get('/', function(req, res, next) {
     var query;
+    var user=req.user.id;
+    console.log(user);
     if(req.query.user&&req.query.pc){
        query= {owner:req.query.user,pc:req.query.pc}
     } else if(req.query.user){
@@ -23,7 +25,9 @@ router.get('/', function(req, res, next) {
         .populate('request')
         .exec(function (err, tasks) {
             if (err) return next(err);
-            res.json(tasks);
+            pcUtils.processTask(tasks,user,function(result){
+                res.json(result);
+            });
         });
 });
 
@@ -32,7 +36,7 @@ router.post('/', function(req, res, next) {
     req.body.pc=req.body.pc._id;
     delete req.body.dateCreate;
     var task = new Task(req.body);
-
+    var user=req.user.id;
     Task.find({process:task.process, pc:task.pc, owner:task.owner, completed:task.completed,
         exception:task.exception,dateCreate:task.dateCreate},function(err,result){
         if(err)next(err);
@@ -43,12 +47,11 @@ router.post('/', function(req, res, next) {
                     completed:model.completed,exception:task.exception,dateCreate:model.dateCreate})
                     .populate('owner')
                     .populate({path:'pc',populate:{path:'owner'}})
+                    .lean()
                     .exec(function(err,callback){
                     if(err)next(err);
-                    console.log({task:callback._id, user:callback.owner._id});
-                    www.socket.sockets.emit(callback.owner._id,{type:'add_task', pc:callback.pc._id, task:callback._id, user:callback.owner._id});
-                    res.json(callback);
-
+                        www.socket.sockets.emit(callback.owner._id,{type:'add_task', pc:callback.pc._id, task:callback._id, user:callback.owner._id});
+                        returnTaskResult(callback,res,user);
                     });
 
             })
@@ -75,6 +78,7 @@ router.post('/request', function(req, res, next) {
     var request= new Request(req.body.request);
 
     delete req.body.request;
+    var user=req.user.id;
 
     var task = new Task(req.body);
 
@@ -89,12 +93,11 @@ router.post('/request', function(req, res, next) {
                         .exec(function(err,callback){
                             if(err)next(err);
                             var socketMSG={type:'add_task_request', pc:callback.pc._id, task:callback._id, user:callback.owner._id};
-                            console.log(socketMSG);
-                            www.socket.sockets.emit(callback.owner._id,socketMSG);
-                            res.json(callback);
+                             www.socket.sockets.emit(callback.owner._id, socketMSG);
+                            returnTaskResult(callback,res,user);
                         });
 
-                        });
+                });
 
     });
 
@@ -102,24 +105,27 @@ router.post('/request', function(req, res, next) {
 
 
 router.get('/:id', function(req, res, next) {
+    var user=req.user.id;
     Task.findById(req.params.id)
         .lean()
         .populate('owner')
         .populate({path:'pc',populate:{path:'owner'}})
         .populate('request')
-        .exec(function (err, tasks) {
+        .exec(function (err, task) {
             if (err) return next(err);
-            res.json(tasks);
+            returnTaskResult(task,res,user);
         });
 });
 
 router.put('/request/:id', function(req, res, next) {
+    var user=req.user.id;
 
     Request.findByIdAndUpdate(req.params.id, req.body.request, {new: true,upsert:true}, function (err, model){
         if (err) return next(err);
        delete req.body.request;
         Task.findByIdAndUpdate(model.task,req.body,{new:true,upsert:true})
             .populate(['owner',{path:'pc',populate:{path:'owner'}},'request'])
+            .lean()
             .exec(function(err,callback){
                 if(err)next(err);
                 var taskMsg;
@@ -130,14 +136,14 @@ router.put('/request/:id', function(req, res, next) {
                 }
                 console.log(taskMsg);
                 www.socket.sockets.emit(taskMsg.user,taskMsg);
-
-                res.json(callback);
+                returnTaskResult(callback,res,user);
             });
 
     });
 });
 
 router.put('/:id', function(req, res, next) {
+    var user=req.user.id;
 
     Task.findByIdAndUpdate(req.params.id, req.body, {new: true,upsert:true}, function (err, model){
         if (err) return next(err);
@@ -152,16 +158,23 @@ router.put('/:id', function(req, res, next) {
 
         Task.populate(model,['owner',{path:'pc',populate:{path:'owner'}},'request'],function(err,callback){
             if(err)next(err);
-            res.json(callback);
+            var task=callback.toObject();
+            returnTaskResult(task,res,user);
         });
     });
 });
 
 router.delete('/:id', function(req, res, next) {
+    var user=req.user.id;
     Task.remove({_id: req.params.id}, function (err, task){
         if (err) return next(err);
-        res.json(task);
+        returnTaskResult(task,res,user);
     })
 });
+
+function returnTaskResult(task,res,user){
+        task.pc.owner = pcUtils.getUserFromUserArray(task.pc.owner,user);
+        res.json(task);
+}
 
 module.exports = router;
